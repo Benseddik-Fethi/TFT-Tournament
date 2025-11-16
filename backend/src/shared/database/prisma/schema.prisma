@@ -1,0 +1,158 @@
+// Prisma Schema - TFT Tournament
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MODEL
+// ============================================
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  username    String
+  avatarUrl   String?   @map("avatar_url")
+  provider    String // 'google' | 'discord' | 'twitch'
+  providerId  String    @map("provider_id")
+  riotId      String?   @map("riot_id")
+  riotPuuid   String?   @map("riot_puuid")
+  role        String    @default("player") // 'player' | 'organizer' | 'admin'
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  // Relations
+  tournaments    Tournament[]
+  participations TournamentParticipant[]
+  results        MatchResult[]
+
+  @@unique([provider, providerId])
+  @@index([email])
+  @@index([riotId])
+  @@map("users")
+}
+
+// ============================================
+// TOURNAMENT MODEL
+// ============================================
+model Tournament {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  slug          String    @unique
+  ownerId       String    @map("owner_id")
+  startDate     DateTime  @map("start_date")
+  checkInTime   DateTime  @map("check_in_time")
+  endDate       DateTime? @map("end_date")
+  format        String    @default("swiss") // 'swiss' | 'league' | 'double_elim'
+  maxPlayers    Int       @map("max_players")
+  lobbySize     Int       @default(8) @map("lobby_size")
+  numRounds     Int       @map("num_rounds")
+  scoringType   String    @default("standard") @map("scoring_type") // 'standard' | 'custom'
+  scoringPoints Int[]     @default([8, 7, 6, 5, 4, 3, 2, 1]) @map("scoring_points")
+  status        String    @default("draft") // 'draft' | 'open' | 'checkin' | 'in_progress' | 'completed' | 'cancelled'
+  isPublic      Boolean   @default(true) @map("is_public")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  owner        User                    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  participants TournamentParticipant[]
+  rounds       Round[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([startDate(sort: Desc)])
+  @@map("tournaments")
+}
+
+// ============================================
+// TOURNAMENT PARTICIPANT MODEL
+// ============================================
+model TournamentParticipant {
+  id             String    @id @default(uuid())
+  tournamentId   String    @map("tournament_id")
+  userId         String    @map("user_id")
+  registeredAt   DateTime  @default(now()) @map("registered_at")
+  checkedIn      Boolean   @default(false) @map("checked_in")
+  checkedInAt    DateTime? @map("checked_in_at")
+  status         String    @default("registered") // 'registered' | 'checked_in' | 'playing' | 'dropped' | 'finished'
+  totalPoints    Int       @default(0) @map("total_points")
+  finalPlacement Int?      @map("final_placement")
+
+  // Relations
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+  @@map("tournament_participants")
+}
+
+// ============================================
+// ROUND MODEL
+// ============================================
+model Round {
+  id           String    @id @default(uuid())
+  tournamentId String    @map("tournament_id")
+  roundNumber  Int       @map("round_number")
+  status       String    @default("pending") // 'pending' | 'in_progress' | 'completed'
+  createdAt    DateTime  @default(now()) @map("created_at")
+  completedAt  DateTime? @map("completed_at")
+
+  // Relations
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  lobbies    Lobby[]
+
+  @@unique([tournamentId, roundNumber])
+  @@index([tournamentId])
+  @@map("rounds")
+}
+
+// ============================================
+// LOBBY MODEL
+// ============================================
+model Lobby {
+  id          String   @id @default(uuid())
+  roundId     String   @map("round_id")
+  lobbyLetter String   @map("lobby_letter") // 'A', 'B', 'C', etc.
+  players     String[] // Array de user IDs
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  round   Round         @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  results MatchResult[]
+
+  @@unique([roundId, lobbyLetter])
+  @@index([roundId])
+  @@map("lobbies")
+}
+
+// ============================================
+// MATCH RESULT MODEL
+// ============================================
+model MatchResult {
+  id        String   @id @default(uuid())
+  lobbyId   String   @map("lobby_id")
+  userId    String   @map("user_id")
+  placement Int // 1-8
+  points    Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  lobby Lobby @relation(fields: [lobbyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lobbyId, userId])
+  @@unique([lobbyId, placement])
+  @@index([lobbyId])
+  @@index([userId])
+  @@map("match_results")
+}
