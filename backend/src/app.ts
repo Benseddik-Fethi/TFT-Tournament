@@ -1,10 +1,12 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import passport from '@/shared/auth/passport.config';
 import { errorMiddleware } from '@/shared/middlewares/error.middleware';
 import { loggerMiddleware } from '@/shared/middlewares/logger.middleware';
 import { rateLimitMiddleware } from '@/shared/middlewares/rate-limit.middleware';
 import { logger } from '@/shared/utils/logger';
+import authRoutes from '@/modules/auth/auth.routes';
 
 export function createApp(): Application {
     const app: Application = express();
@@ -25,6 +27,11 @@ export function createApp(): Application {
     // ============================================
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    // ============================================
+    // PASSPORT INITIALIZATION
+    // ============================================
+    app.use(passport.initialize());
 
     // ============================================
     // LOGGING
@@ -51,8 +58,8 @@ export function createApp(): Application {
     // ============================================
     // API ROUTES
     // ============================================
-    // TODO: Add routes here
-    // app.use('/api/auth', authRoutes);
+    app.use('/api/auth', authRoutes);
+    // TODO: Add more routes here
     // app.use('/api/users', userRoutes);
     // app.use('/api/tournaments', tournamentRoutes);
 
