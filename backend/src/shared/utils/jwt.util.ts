@@ -4,7 +4,7 @@
  * Handles JWT token generation, verification, and decoding
  */
 
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { getAuthConfig } from '@/config/auth.config';
 import { UnauthorizedError } from './errors';
 
@@ -26,9 +26,10 @@ export interface TokenPair {
  */
 export function generateAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
   const config = getAuthConfig();
-  return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn,
-  });
+  const options: SignOptions = {
+    expiresIn: config.jwt.expiresIn as any,
+  };
+  return jwt.sign(payload, config.jwt.secret, options);
 }
 
 /**
@@ -36,9 +37,10 @@ export function generateAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): s
  */
 export function generateRefreshToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
   const config = getAuthConfig();
-  return jwt.sign(payload, config.jwt.refreshSecret, {
-    expiresIn: config.jwt.refreshExpiresIn,
-  });
+  const options: SignOptions = {
+    expiresIn: config.jwt.refreshExpiresIn as any,
+  };
+  return jwt.sign(payload, config.jwt.refreshSecret, options);
 }
 
 /**

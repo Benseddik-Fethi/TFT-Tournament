@@ -6,7 +6,7 @@ export function errorMiddleware(
     err: Error | AppError,
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
 ) {
     // Default error
     let statusCode = 500;
@@ -29,11 +29,20 @@ export function errorMiddleware(
         ip: req.ip,
     });
 
-    // Send response
-    res.status(statusCode).json({
+    // Build response
+    const response: Record<string, unknown> = {
         success: false,
         message,
-        ...(errors && { errors }),
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    });
+    };
+
+    if (errors) {
+        response.errors = errors;
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+        response.stack = err.stack;
+    }
+
+    // Send response
+    res.status(statusCode).json(response);
 }

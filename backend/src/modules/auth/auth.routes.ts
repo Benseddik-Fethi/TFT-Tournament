@@ -4,12 +4,12 @@
  * OAuth and JWT authentication endpoints
  */
 
-import { Router } from 'express';
+import { Router, type Router as IRouter } from 'express';
 import passport from '@/shared/auth/passport.config';
 import { AuthController } from './auth.controller';
 import { authRequired } from '@/shared/middlewares/auth.middleware';
 
-const router = Router();
+const router: IRouter = Router();
 const authController = new AuthController();
 
 /**
