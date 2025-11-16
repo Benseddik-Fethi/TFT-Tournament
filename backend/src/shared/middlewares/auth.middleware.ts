@@ -1,0 +1,180 @@
+/**
+ * Authentication Middleware
+ *
+ * Protect routes and extract authenticated user information
+ */
+
+import { Request, Response, NextFunction } from 'express';
+import { prisma } from '@/shared/database/client';
+import { UnauthorizedError, ForbiddenError } from '@/shared/utils/errors';
+import { verifyAccessToken, extractTokenFromHeader } from '@/shared/utils/jwt.util';
+import { logger } from '@/shared/utils/logger';
+
+/**
+ * Extend Express Request to include user
+ */
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        username: string;
+        role: string;
+        provider: string;
+      };
+    }
+  }
+}
+
+/**
+ * Authentication middleware - requires valid JWT token
+ * Extracts user from token and attaches to req.user
+ */
+export async function authRequired(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Extract token from Authorization header
+    const token = extractTokenFromHeader(req.headers.authorization);
+
+    if (!token) {
+      throw new UnauthorizedError('No authentication token provided');
+    }
+
+    // Verify token
+    const payload = verifyAccessToken(token);
+
+    // Fetch user from database
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        provider: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedError('User not found');
+    }
+
+    // Attach user to request
+    req.user = user;
+
+    next();
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      next(error);
+    } else {
+      logger.error('Authentication error', { error });
+      next(new UnauthorizedError('Authentication failed'));
+    }
+  }
+}
+
+/**
+ * Optional authentication middleware
+ * Attaches user if token is valid, but doesn't require it
+ */
+export async function authOptional(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = extractTokenFromHeader(req.headers.authorization);
+
+    if (!token) {
+      // No token provided, continue without user
+      return next();
+    }
+
+    const payload = verifyAccessToken(token);
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        provider: true,
+      },
+    });
+
+    if (user) {
+      req.user = user;
+    }
+
+    next();
+  } catch (error) {
+    // If token is invalid, just continue without user
+    // Don't throw error for optional auth
+    next();
+  }
+}
+
+/**
+ * Role-based authorization middleware
+ * Requires user to have specific role(s)
+ */
+export function requireRole(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new UnauthorizedError('Authentication required'));
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return next(
+        new ForbiddenError(
+          `Access denied. Required role: ${allowedRoles.join(' or ')}`
+        )
+      );
+    }
+
+    next();
+  };
+}
+
+/**
+ * Check if authenticated user is the owner of a resource
+ * Usage: requireOwnership('ownerId') where ownerId is a param or body field
+ */
+export function requireOwnership(ownerIdField: string = 'ownerId') {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(new UnauthorizedError('Authentication required'));
+      }
+
+      // Check in params first, then body
+      const resourceOwnerId = req.params[ownerIdField] || req.body[ownerIdField];
+
+      if (!resourceOwnerId) {
+        return next(new ForbiddenError('Owner verification failed'));
+      }
+
+      // Admin can access everything
+      if (req.user.role === 'admin') {
+        return next();
+      }
+
+      // Check if user is the owner
+      if (req.user.id !== resourceOwnerId) {
+        return next(new ForbiddenError('You do not own this resource'));
+      }
+
+      next();
+    } catch (error) {
+      logger.error('Ownership check error', { error });
+      next(new ForbiddenError('Ownership verification failed'));
+    }
+  };
+}
+
+/**
+ * Check if user is admin
+ */
+export const requireAdmin = requireRole('admin');
+
+/**
+ * Check if user is organizer or admin
+ */
+export const requireOrganizer = requireRole('organizer', 'admin');
