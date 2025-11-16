@@ -1,10 +1,11 @@
+// IMPORTANT: Load environment variables BEFORE any imports
+// This ensures OAuth strategies are registered correctly
 import dotenv from 'dotenv';
+dotenv.config();
+
 import { createApp } from './app';
 import { logger } from '@/shared/utils/logger';
 import { prisma } from '@/shared/database/client';
-
-// Load environment variables
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
