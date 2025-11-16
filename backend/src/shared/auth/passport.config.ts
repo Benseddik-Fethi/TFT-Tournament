@@ -99,7 +99,7 @@ export function initializePassportStrategies() {
           clientSecret: authConfig.oauth.google.clientSecret,
           callbackURL: authConfig.oauth.google.callbackURL,
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (_accessToken, _refreshToken, profile, done) => {
           try {
             const oauthProfile: OAuthProfile = {
               provider: 'google',
@@ -134,7 +134,7 @@ export function initializePassportStrategies() {
           callbackURL: authConfig.oauth.discord.callbackURL,
           scope: authConfig.oauth.discord.scope,
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (_accessToken, _refreshToken, profile, done) => {
           try {
             const oauthProfile: OAuthProfile = {
               provider: 'discord',
@@ -171,7 +171,7 @@ export function initializePassportStrategies() {
           callbackURL: authConfig.oauth.twitch.callbackURL,
           scope: authConfig.oauth.twitch.scope,
         },
-        async (accessToken, refreshToken, profile, done) => {
+        async (_accessToken, _refreshToken, profile, done) => {
           try {
             const oauthProfile: OAuthProfile = {
               provider: 'twitch',

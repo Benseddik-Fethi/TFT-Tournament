@@ -59,7 +59,7 @@ export function getAuthConfig() {
  * @deprecated Use getAuthConfig() instead
  */
 export const authConfig = new Proxy({} as ReturnType<typeof buildAuthConfig>, {
-  get(target, prop) {
+  get(_target, prop) {
     return getAuthConfig()[prop as keyof ReturnType<typeof buildAuthConfig>];
   }
 });

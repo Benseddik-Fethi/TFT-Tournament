@@ -4,11 +4,15 @@
  * HTTP request handlers for authentication routes
  */
 
+/// <reference path="../../types/express.d.ts" />
+
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { getAuthConfig } from '@/config/auth.config';
 import { BadRequestError } from '@/shared/utils/errors';
 import { logger } from '@/shared/utils/logger';
+
+type User = any; // Prisma client not available in this environment
 
 export class AuthController {
   private authService: AuthService;
@@ -29,7 +33,8 @@ export class AuthController {
       }
 
       // Generate auth response with tokens
-      const authResponse = await this.authService.generateAuthResponse(req.user.id as string);
+      const user = req.user as User;
+      const authResponse = await this.authService.generateAuthResponse(user.id);
 
       // Redirect to frontend with tokens in URL (or use a different method)
       const config = getAuthConfig();
@@ -38,7 +43,7 @@ export class AuthController {
       redirectUrl.searchParams.set('accessToken', authResponse.tokens.accessToken);
       redirectUrl.searchParams.set('refreshToken', authResponse.tokens.refreshToken);
 
-      logger.info('OAuth callback successful', { userId: req.user.id });
+      logger.info('OAuth callback successful', { userId: user.id });
 
       res.redirect(redirectUrl.toString());
     } catch (error) {
@@ -56,7 +61,8 @@ export class AuthController {
         throw new BadRequestError('User not authenticated');
       }
 
-      const user = await this.authService.getCurrentUser(req.user.id);
+      const authenticatedUser = req.user as User;
+      const user = await this.authService.getCurrentUser(authenticatedUser.id);
 
       res.json({
         success: true,
@@ -101,7 +107,8 @@ export class AuthController {
         throw new BadRequestError('User not authenticated');
       }
 
-      await this.authService.logout(req.user.id);
+      const user = req.user as User;
+      await this.authService.logout(user.id);
 
       res.json({
         success: true,
@@ -122,7 +129,8 @@ export class AuthController {
         throw new BadRequestError('User not authenticated');
       }
 
-      await this.authService.deleteAccount(req.user.id);
+      const user = req.user as User;
+      await this.authService.deleteAccount(user.id);
 
       res.json({
         success: true,

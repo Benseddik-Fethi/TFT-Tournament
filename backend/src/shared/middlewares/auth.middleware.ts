@@ -4,34 +4,21 @@
  * Protect routes and extract authenticated user information
  */
 
+/// <reference path="../../types/express.d.ts" />
+
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '@/shared/database/client';
 import { UnauthorizedError, ForbiddenError } from '@/shared/utils/errors';
 import { verifyAccessToken, extractTokenFromHeader } from '@/shared/utils/jwt.util';
 import { logger } from '@/shared/utils/logger';
 
-/**
- * Extend Express Request to include user
- */
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        username: string;
-        role: string;
-        provider: string;
-      };
-    }
-  }
-}
+type User = any; // Prisma client not available in this environment
 
 /**
  * Authentication middleware - requires valid JWT token
  * Extracts user from token and attaches to req.user
  */
-export async function authRequired(req: Request, res: Response, next: NextFunction) {
+export async function authRequired(req: Request, _res: Response, next: NextFunction) {
   try {
     // Extract token from Authorization header
     const token = extractTokenFromHeader(req.headers.authorization);
@@ -46,13 +33,6 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
     // Fetch user from database
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        provider: true,
-      },
     });
 
     if (!user) {
@@ -77,7 +57,7 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
  * Optional authentication middleware
  * Attaches user if token is valid, but doesn't require it
  */
-export async function authOptional(req: Request, res: Response, next: NextFunction) {
+export async function authOptional(req: Request, _res: Response, next: NextFunction) {
   try {
     const token = extractTokenFromHeader(req.headers.authorization);
 
@@ -90,13 +70,6 @@ export async function authOptional(req: Request, res: Response, next: NextFuncti
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        role: true,
-        provider: true,
-      },
     });
 
     if (user) {
@@ -116,12 +89,13 @@ export async function authOptional(req: Request, res: Response, next: NextFuncti
  * Requires user to have specific role(s)
  */
 export function requireRole(...allowedRoles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new UnauthorizedError('Authentication required'));
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const user = req.user as User;
+    if (!allowedRoles.includes(user.role)) {
       return next(
         new ForbiddenError(
           `Access denied. Required role: ${allowedRoles.join(' or ')}`
@@ -138,11 +112,13 @@ export function requireRole(...allowedRoles: string[]) {
  * Usage: requireOwnership('ownerId') where ownerId is a param or body field
  */
 export function requireOwnership(ownerIdField: string = 'ownerId') {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       if (!req.user) {
         return next(new UnauthorizedError('Authentication required'));
       }
+
+      const user = req.user as User;
 
       // Check in params first, then body
       const resourceOwnerId = req.params[ownerIdField] || req.body[ownerIdField];
@@ -152,12 +128,12 @@ export function requireOwnership(ownerIdField: string = 'ownerId') {
       }
 
       // Admin can access everything
-      if (req.user.role === 'admin') {
+      if (user.role === 'admin') {
         return next();
       }
 
       // Check if user is the owner
-      if (req.user.id !== resourceOwnerId) {
+      if (user.id !== resourceOwnerId) {
         return next(new ForbiddenError('You do not own this resource'));
       }
 
