@@ -18,6 +18,13 @@ export function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        // Check for error parameter first
+        const errorParam = searchParams.get('error');
+        if (errorParam) {
+          setError(decodeURIComponent(errorParam));
+          return;
+        }
+
         // Extract tokens from URL
         const accessToken = searchParams.get('accessToken');
         const refreshToken = searchParams.get('refreshToken');

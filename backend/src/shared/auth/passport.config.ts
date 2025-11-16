@@ -53,6 +53,25 @@ async function findOrCreateUser(profile: OAuthProfile) {
       return user;
     }
 
+    // Check if user with this email already exists (with different provider)
+    const existingUser = await prisma.user.findUnique({
+      where: { email: profile.email },
+    });
+
+    if (existingUser) {
+      // Email already exists with different provider
+      logger.warn('User attempted login with different provider', {
+        email: profile.email,
+        existingProvider: existingUser.provider,
+        attemptedProvider: profile.provider,
+      });
+
+      throw new Error(
+        `Un compte existe déjà avec cet email (${profile.email}). ` +
+        `Veuillez vous connecter avec ${existingUser.provider === 'google' ? 'Google' : existingUser.provider === 'discord' ? 'Discord' : 'Twitch'}.`
+      );
+    }
+
     // Create new user
     user = await prisma.user.create({
       data: {
