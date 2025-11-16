@@ -16,9 +16,13 @@ export interface AuthResponse {
     username: string;
     avatarUrl: string | null;
     role: string;
-    provider: string;
     riotId: string | null;
     createdAt: Date;
+    oauthAccounts: Array<{
+      provider: string;
+      providerId: string;
+      email: string | null;
+    }>;
   };
   tokens: TokenPair;
 }
@@ -28,9 +32,18 @@ export class AuthService {
    * Generate authentication response with tokens
    */
   async generateAuthResponse(userId: string): Promise<AuthResponse> {
-    // Fetch user from database
+    // Fetch user from database with OAuth accounts
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      include: {
+        oauthAccounts: {
+          select: {
+            provider: true,
+            providerId: true,
+            email: true,
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -53,9 +66,9 @@ export class AuthService {
         username: user.username,
         avatarUrl: user.avatarUrl,
         role: user.role,
-        provider: user.provider,
         riotId: user.riotId,
         createdAt: user.createdAt,
+        oauthAccounts: user.oauthAccounts,
       },
       tokens,
     };
@@ -106,10 +119,18 @@ export class AuthService {
         username: true,
         avatarUrl: true,
         role: true,
-        provider: true,
         riotId: true,
         createdAt: true,
         lastLoginAt: true,
+        oauthAccounts: {
+          select: {
+            id: true,
+            provider: true,
+            providerId: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
     });
 

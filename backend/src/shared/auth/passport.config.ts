@@ -24,64 +24,91 @@ export interface OAuthProfile {
 }
 
 /**
- * Find or create user from OAuth profile
+ * Find or create user from OAuth profile with automatic account linking
  */
 async function findOrCreateUser(profile: OAuthProfile) {
   try {
-    // Check if user already exists with this provider
-    let user = await prisma.user.findUnique({
+    // Step 1: Check if this OAuth account already exists
+    const oauthAccount = await prisma.oAuthAccount.findUnique({
       where: {
         provider_providerId: {
           provider: profile.provider,
           providerId: profile.providerId,
         },
       },
+      include: {
+        user: true,
+      },
     });
 
-    // If user exists, update last login
-    if (user) {
-      user = await prisma.user.update({
-        where: { id: user.id },
+    // OAuth account found - login with existing user
+    if (oauthAccount) {
+      const user = await prisma.user.update({
+        where: { id: oauthAccount.userId },
         data: { lastLoginAt: new Date() },
       });
 
       logger.info('User logged in via OAuth', {
         userId: user.id,
         provider: profile.provider,
+        linkedAccount: true,
       });
 
       return user;
     }
 
-    // Check if user with this email already exists (with different provider)
+    // Step 2: Check if user with this email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: profile.email },
+      include: {
+        oauthAccounts: true,
+      },
     });
 
     if (existingUser) {
-      // Email already exists with different provider
-      logger.warn('User attempted login with different provider', {
-        email: profile.email,
-        existingProvider: existingUser.provider,
-        attemptedProvider: profile.provider,
+      // Link this new OAuth account to existing user
+      await prisma.oAuthAccount.create({
+        data: {
+          userId: existingUser.id,
+          provider: profile.provider,
+          providerId: profile.providerId,
+          email: profile.email,
+        },
       });
 
-      throw new Error(
-        `Un compte existe déjà avec cet email (${profile.email}). ` +
-        `Veuillez vous connecter avec ${existingUser.provider === 'google' ? 'Google' : existingUser.provider === 'discord' ? 'Discord' : 'Twitch'}.`
-      );
+      // Update last login
+      const user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      logger.info('OAuth account linked to existing user', {
+        userId: user.id,
+        provider: profile.provider,
+        existingProviders: existingUser.oauthAccounts.map(a => a.provider),
+      });
+
+      return user;
     }
 
-    // Create new user
-    user = await prisma.user.create({
+    // Step 3: Create new user with first OAuth account
+    const user = await prisma.user.create({
       data: {
         email: profile.email,
         username: profile.username,
         avatarUrl: profile.avatarUrl,
-        provider: profile.provider,
-        providerId: profile.providerId,
-        role: 'player', // Default role
+        role: 'player',
         lastLoginAt: new Date(),
+        oauthAccounts: {
+          create: {
+            provider: profile.provider,
+            providerId: profile.providerId,
+            email: profile.email,
+          },
+        },
+      },
+      include: {
+        oauthAccounts: true,
       },
     });
 

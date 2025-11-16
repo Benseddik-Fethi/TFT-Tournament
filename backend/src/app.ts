@@ -7,6 +7,7 @@ import { loggerMiddleware } from '@/shared/middlewares/logger.middleware';
 import { rateLimitMiddleware } from '@/shared/middlewares/rate-limit.middleware';
 import { logger } from '@/shared/utils/logger';
 import authRoutes from '@/modules/auth/auth.routes';
+import userRoutes from '@/modules/users/user.routes';
 
 export function createApp(): Application {
     // Initialize Passport strategies (must be called after env vars are loaded)
@@ -62,8 +63,8 @@ export function createApp(): Application {
     // API ROUTES
     // ============================================
     app.use('/api/auth', authRoutes);
+    app.use('/api/users', userRoutes);
     // TODO: Add more routes here
-    // app.use('/api/users', userRoutes);
     // app.use('/api/tournaments', tournamentRoutes);
 
     app.get('/api', (_req, res) => {
