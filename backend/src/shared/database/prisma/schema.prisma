@@ -18,8 +18,6 @@ model User {
   email       String    @unique
   username    String
   avatarUrl   String?   @map("avatar_url")
-  provider    String // 'google' | 'discord' | 'twitch'
-  providerId  String    @map("provider_id")
   riotId      String?   @map("riot_id")
   riotPuuid   String?   @map("riot_puuid")
   role        String    @default("player") // 'player' | 'organizer' | 'admin'
@@ -28,14 +26,34 @@ model User {
   lastLoginAt DateTime? @map("last_login_at")
 
   // Relations
+  oauthAccounts  OAuthAccount[]
   tournaments    Tournament[]
   participations TournamentParticipant[]
   results        MatchResult[]
 
-  @@unique([provider, providerId])
   @@index([email])
   @@index([riotId])
   @@map("users")
+}
+
+// ============================================
+// OAUTH ACCOUNT MODEL
+// ============================================
+model OAuthAccount {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  provider   String // 'google' | 'discord' | 'twitch'
+  providerId String   @map("provider_id")
+  email      String? // Email from this provider
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@index([provider])
+  @@map("oauth_accounts")
 }
 
 // ============================================

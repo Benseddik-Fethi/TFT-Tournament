@@ -3,6 +3,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LoginPage } from '@/pages/LoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import { useAuth, useLogout } from '@/hooks/useAuth';
 
 function Header() {
@@ -148,51 +149,6 @@ function TournamentsPage() {
         <div className="text-center">
             <h1 className="text-4xl font-display text-slate-50 mb-4">Tournois</h1>
             <p className="text-slate-400">Liste des tournois à venir...</p>
-        </div>
-    );
-}
-
-function ProfilePage() {
-    const { user } = useAuth();
-
-    return (
-        <div className="max-w-4xl mx-auto">
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-8">
-                <div className="flex items-center space-x-4 mb-6">
-                    {user?.avatarUrl && (
-                        <img
-                            src={user.avatarUrl}
-                            alt={user.username}
-                            className="w-20 h-20 rounded-full border-4 border-brand-gold-500"
-                        />
-                    )}
-                    <div>
-                        <h1 className="text-3xl font-display text-slate-50">{user?.username}</h1>
-                        <p className="text-slate-400">{user?.email}</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                    <div className="bg-slate-800/50 p-4 rounded-lg">
-                        <div className="text-sm text-slate-400">Provider</div>
-                        <div className="text-lg font-medium text-slate-50 capitalize">
-                            {user?.provider}
-                        </div>
-                    </div>
-                    <div className="bg-slate-800/50 p-4 rounded-lg">
-                        <div className="text-sm text-slate-400">Role</div>
-                        <div className="text-lg font-medium text-slate-50 capitalize">
-                            {user?.role}
-                        </div>
-                    </div>
-                    <div className="bg-slate-800/50 p-4 rounded-lg col-span-2">
-                        <div className="text-sm text-slate-400">Riot ID</div>
-                        <div className="text-lg font-medium text-slate-50">
-                            {user?.riotId || 'Non configuré'}
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }
