@@ -6,7 +6,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
-import { authConfig } from '@/config/auth.config';
+import { getAuthConfig } from '@/config/auth.config';
 import { BadRequestError } from '@/shared/utils/errors';
 import { logger } from '@/shared/utils/logger';
 
@@ -32,7 +32,8 @@ export class AuthController {
       const authResponse = await this.authService.generateAuthResponse(req.user.id as string);
 
       // Redirect to frontend with tokens in URL (or use a different method)
-      const redirectUrl = new URL(authConfig.frontendUrl);
+      const config = getAuthConfig();
+      const redirectUrl = new URL(config.frontendUrl);
       redirectUrl.pathname = '/auth/callback';
       redirectUrl.searchParams.set('accessToken', authResponse.tokens.accessToken);
       redirectUrl.searchParams.set('refreshToken', authResponse.tokens.refreshToken);

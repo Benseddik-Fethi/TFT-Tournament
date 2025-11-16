@@ -5,7 +5,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { authConfig } from '@/config/auth.config';
+import { getAuthConfig } from '@/config/auth.config';
 import { UnauthorizedError } from './errors';
 
 export interface JwtPayload {
@@ -25,8 +25,9 @@ export interface TokenPair {
  * Generate access token
  */
 export function generateAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, authConfig.jwt.secret, {
-    expiresIn: authConfig.jwt.expiresIn,
+  const config = getAuthConfig();
+  return jwt.sign(payload, config.jwt.secret, {
+    expiresIn: config.jwt.expiresIn,
   });
 }
 
@@ -34,8 +35,9 @@ export function generateAccessToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): s
  * Generate refresh token
  */
 export function generateRefreshToken(payload: Omit<JwtPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, authConfig.jwt.refreshSecret, {
-    expiresIn: authConfig.jwt.refreshExpiresIn,
+  const config = getAuthConfig();
+  return jwt.sign(payload, config.jwt.refreshSecret, {
+    expiresIn: config.jwt.refreshExpiresIn,
   });
 }
 
@@ -54,7 +56,8 @@ export function generateTokenPair(payload: Omit<JwtPayload, 'iat' | 'exp'>): Tok
  */
 export function verifyAccessToken(token: string): JwtPayload {
   try {
-    const decoded = jwt.verify(token, authConfig.jwt.secret) as JwtPayload;
+    const config = getAuthConfig();
+    const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
@@ -72,7 +75,8 @@ export function verifyAccessToken(token: string): JwtPayload {
  */
 export function verifyRefreshToken(token: string): JwtPayload {
   try {
-    const decoded = jwt.verify(token, authConfig.jwt.refreshSecret) as JwtPayload;
+    const config = getAuthConfig();
+    const decoded = jwt.verify(token, config.jwt.refreshSecret) as JwtPayload;
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

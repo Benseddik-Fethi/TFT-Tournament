@@ -8,7 +8,7 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as DiscordStrategy } from 'passport-discord';
 import { Strategy as TwitchStrategy } from 'passport-twitch-new';
-import { authConfig } from '@/config/auth.config';
+import { getAuthConfig } from '@/config/auth.config';
 import { prisma } from '@/shared/database/client';
 import { logger } from '@/shared/utils/logger';
 
@@ -84,6 +84,9 @@ async function findOrCreateUser(profile: OAuthProfile) {
  */
 export function initializePassportStrategies() {
   logger.info('🔐 Initializing Passport strategies...');
+
+  // Get auth config (evaluated at runtime, not at import time)
+  const authConfig = getAuthConfig();
 
   /**
    * Google OAuth Strategy
