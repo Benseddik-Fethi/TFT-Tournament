@@ -79,119 +79,138 @@ async function findOrCreateUser(profile: OAuthProfile) {
 }
 
 /**
- * Google OAuth Strategy
+ * Initialize Passport strategies
+ * MUST be called after environment variables are loaded
  */
-if (authConfig.oauth.google.clientID && authConfig.oauth.google.clientSecret) {
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: authConfig.oauth.google.clientID,
-        clientSecret: authConfig.oauth.google.clientSecret,
-        callbackURL: authConfig.oauth.google.callbackURL,
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const oauthProfile: OAuthProfile = {
-            provider: 'google',
-            providerId: profile.id,
-            email: profile.emails?.[0]?.value || '',
-            username: profile.displayName || profile.emails?.[0]?.value.split('@')[0] || 'User',
-            avatarUrl: profile.photos?.[0]?.value,
-          };
+export function initializePassportStrategies() {
+  logger.info('🔐 Initializing Passport strategies...');
 
-          const user = await findOrCreateUser(oauthProfile);
-          done(null, user);
-        } catch (error) {
-          done(error as Error);
+  /**
+   * Google OAuth Strategy
+   */
+  if (authConfig.oauth.google.clientID && authConfig.oauth.google.clientSecret) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: authConfig.oauth.google.clientID,
+          clientSecret: authConfig.oauth.google.clientSecret,
+          callbackURL: authConfig.oauth.google.callbackURL,
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const oauthProfile: OAuthProfile = {
+              provider: 'google',
+              providerId: profile.id,
+              email: profile.emails?.[0]?.value || '',
+              username: profile.displayName || profile.emails?.[0]?.value.split('@')[0] || 'User',
+              avatarUrl: profile.photos?.[0]?.value,
+            };
+
+            const user = await findOrCreateUser(oauthProfile);
+            done(null, user);
+          } catch (error) {
+            done(error as Error);
+          }
         }
-      }
-    )
-  );
-}
-
-/**
- * Discord OAuth Strategy
- */
-if (authConfig.oauth.discord.clientID && authConfig.oauth.discord.clientSecret) {
-  passport.use(
-    new DiscordStrategy(
-      {
-        clientID: authConfig.oauth.discord.clientID,
-        clientSecret: authConfig.oauth.discord.clientSecret,
-        callbackURL: authConfig.oauth.discord.callbackURL,
-        scope: authConfig.oauth.discord.scope,
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const oauthProfile: OAuthProfile = {
-            provider: 'discord',
-            providerId: profile.id,
-            email: profile.email || '',
-            username: profile.username || 'User',
-            avatarUrl: profile.avatar
-              ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
-              : undefined,
-          };
-
-          const user = await findOrCreateUser(oauthProfile);
-          done(null, user);
-        } catch (error) {
-          done(error as Error);
-        }
-      }
-    )
-  );
-}
-
-/**
- * Twitch OAuth Strategy
- */
-if (authConfig.oauth.twitch.clientID && authConfig.oauth.twitch.clientSecret) {
-  passport.use(
-    new TwitchStrategy(
-      {
-        clientID: authConfig.oauth.twitch.clientID,
-        clientSecret: authConfig.oauth.twitch.clientSecret,
-        callbackURL: authConfig.oauth.twitch.callbackURL,
-        scope: authConfig.oauth.twitch.scope,
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const oauthProfile: OAuthProfile = {
-            provider: 'twitch',
-            providerId: profile.id,
-            email: profile.email || '',
-            username: profile.display_name || profile.login || 'User',
-            avatarUrl: profile.profile_image_url,
-          };
-
-          const user = await findOrCreateUser(oauthProfile);
-          done(null, user);
-        } catch (error) {
-          done(error as Error);
-        }
-      }
-    )
-  );
-}
-
-/**
- * Serialize user for session (not used with JWT, but required by Passport)
- */
-passport.serializeUser((user: any, done) => {
-  done(null, user.id);
-});
-
-/**
- * Deserialize user from session (not used with JWT, but required by Passport)
- */
-passport.deserializeUser(async (id: string, done) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { id } });
-    done(null, user);
-  } catch (error) {
-    done(error);
+      )
+    );
+    logger.info('  ✅ Google strategy registered');
+  } else {
+    logger.warn('  ⚠️  Google OAuth not configured (missing CLIENT_ID or CLIENT_SECRET)');
   }
-});
+
+  /**
+   * Discord OAuth Strategy
+   */
+  if (authConfig.oauth.discord.clientID && authConfig.oauth.discord.clientSecret) {
+    passport.use(
+      new DiscordStrategy(
+        {
+          clientID: authConfig.oauth.discord.clientID,
+          clientSecret: authConfig.oauth.discord.clientSecret,
+          callbackURL: authConfig.oauth.discord.callbackURL,
+          scope: authConfig.oauth.discord.scope,
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const oauthProfile: OAuthProfile = {
+              provider: 'discord',
+              providerId: profile.id,
+              email: profile.email || '',
+              username: profile.username || 'User',
+              avatarUrl: profile.avatar
+                ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
+                : undefined,
+            };
+
+            const user = await findOrCreateUser(oauthProfile);
+            done(null, user);
+          } catch (error) {
+            done(error as Error);
+          }
+        }
+      )
+    );
+    logger.info('  ✅ Discord strategy registered');
+  } else {
+    logger.warn('  ⚠️  Discord OAuth not configured (missing CLIENT_ID or CLIENT_SECRET)');
+  }
+
+  /**
+   * Twitch OAuth Strategy
+   */
+  if (authConfig.oauth.twitch.clientID && authConfig.oauth.twitch.clientSecret) {
+    passport.use(
+      new TwitchStrategy(
+        {
+          clientID: authConfig.oauth.twitch.clientID,
+          clientSecret: authConfig.oauth.twitch.clientSecret,
+          callbackURL: authConfig.oauth.twitch.callbackURL,
+          scope: authConfig.oauth.twitch.scope,
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            const oauthProfile: OAuthProfile = {
+              provider: 'twitch',
+              providerId: profile.id,
+              email: profile.email || '',
+              username: profile.display_name || profile.login || 'User',
+              avatarUrl: profile.profile_image_url,
+            };
+
+            const user = await findOrCreateUser(oauthProfile);
+            done(null, user);
+          } catch (error) {
+            done(error as Error);
+          }
+        }
+      )
+    );
+    logger.info('  ✅ Twitch strategy registered');
+  } else {
+    logger.warn('  ⚠️  Twitch OAuth not configured (missing CLIENT_ID or CLIENT_SECRET)');
+  }
+
+  /**
+   * Serialize user for session (not used with JWT, but required by Passport)
+   */
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+
+  /**
+   * Deserialize user from session (not used with JWT, but required by Passport)
+   */
+  passport.deserializeUser(async (id: string, done) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { id } });
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
+  });
+
+  logger.info('✅ Passport strategies initialized');
+}
 
 export default passport;

@@ -1,13 +1,25 @@
+// IMPORTANT: Load environment variables BEFORE any imports
+// This ensures OAuth strategies are registered correctly
 import dotenv from 'dotenv';
+dotenv.config();
+
 import { createApp } from './app';
 import { logger } from '@/shared/utils/logger';
 import { prisma } from '@/shared/database/client';
 
-// Load environment variables
-dotenv.config();
-
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// ============================================
+// DEBUG: Log OAuth config on startup
+// ============================================
+logger.info('🔐 OAuth Configuration Status:');
+logger.info(`  Google Client ID: ${process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing'}`);
+logger.info(`  Google Client Secret: ${process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing'}`);
+logger.info(`  Discord Client ID: ${process.env.DISCORD_CLIENT_ID ? '✅ Set' : '❌ Missing'}`);
+logger.info(`  Discord Client Secret: ${process.env.DISCORD_CLIENT_SECRET ? '✅ Set' : '❌ Missing'}`);
+logger.info(`  Twitch Client ID: ${process.env.TWITCH_CLIENT_ID ? '✅ Set' : '❌ Missing'}`);
+logger.info(`  Twitch Client Secret: ${process.env.TWITCH_CLIENT_SECRET ? '✅ Set' : '❌ Missing'}`);
 
 async function startServer() {
     try {

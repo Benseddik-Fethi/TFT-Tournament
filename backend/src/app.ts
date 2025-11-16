@@ -1,7 +1,7 @@
 import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import passport from '@/shared/auth/passport.config';
+import passport, { initializePassportStrategies } from '@/shared/auth/passport.config';
 import { errorMiddleware } from '@/shared/middlewares/error.middleware';
 import { loggerMiddleware } from '@/shared/middlewares/logger.middleware';
 import { rateLimitMiddleware } from '@/shared/middlewares/rate-limit.middleware';
@@ -9,6 +9,9 @@ import { logger } from '@/shared/utils/logger';
 import authRoutes from '@/modules/auth/auth.routes';
 
 export function createApp(): Application {
+    // Initialize Passport strategies (must be called after env vars are loaded)
+    initializePassportStrategies();
+
     const app: Application = express();
 
     // ============================================
