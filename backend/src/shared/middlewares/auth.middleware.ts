@@ -77,7 +77,7 @@ export async function authOptional(req: Request, _res: Response, next: NextFunct
     }
 
     next();
-  } catch (error) {
+  } catch {
     // If token is invalid, just continue without user
     // Don't throw error for optional auth
     next();
